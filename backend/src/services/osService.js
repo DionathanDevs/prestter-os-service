@@ -1,3 +1,4 @@
+const { INTEGER } = require('sequelize');
 const ServiceOrder = require('../models/ServiceOrder')
 const OsDetailsMongo = require('../models/osDetails')
 
@@ -55,17 +56,37 @@ const osService = {
         
     },
 
-    getOrderById: async (id) => {
-        const osBase = await ServiceOrder.findByPk(id)
+    getOrderById: async (id,company_id) => {
+
+        
+    
+
+        const osBase = await ServiceOrder.findOne({
+            where: {id, company_id}})
+        
         if(!osBase) return null
 
-        const osExtra = await OsDetailsMongo.findOne({mysql_os_id: id})
+        try{
+            const osExtra = await OsDetailsMongo.findOne({mysql_os_id: id})
 
         return {
             ...osBase.toJSON(),
             checklist: osExtra?.checklist || {},
-            pictures: osExtra?.pictures || []
+            pictures: osExtra?.pictures || [],
+            detailSuccess: true
         }
+        
+        }catch(err){
+            console.log("Erro ao buscar detalhes da solicitação: ", err.message)
+            return {
+                ...osBase.toJSON(),
+                checklist: {},
+                pictures: [],
+                detailsSuccess: false
+            }
+        }
+
+        
     },
 
     getAllOrders: async(company_id) => {
@@ -87,15 +108,54 @@ const osService = {
         return acc;
           }, {});
 
-        return orders.map(os => {
-        const extra = detailsMap[os.id];
+        const totalOrders = orders.map(os => {
+        
+            
+        const osJson = os.toJSON()
+
+        osJson.total_amount = parseFloat(osJson.total_amount)
+
+        const extra = detailsMap[osJson.id];
+
+    
         
         return {
-            ...os.toJSON(),
+            ...osJson,
             checklist_summary: extra ? Object.keys(extra.checklist).length : 0,
-            has_pictures: extra?.pictures?.length > 0
+            has_pictures: extra?.pictures?.length > 0,
+        
+            
         };
     });
+
+        return {
+            sumary: dashBoard(totalOrders),
+            listagem: totalOrders
+        }
+
+        function dashBoard(arrayOrder){
+
+            const statusOpen = arrayOrder.filter(item => item.status === 'open').length;
+
+            const contagemTotal = arrayOrder.reduce((acc, soma) => {
+              
+              acc += soma.total_amount
+              return acc
+
+            }, 0)
+        
+
+            return {
+               
+                    totalStatusOpen: statusOpen,
+                    totalAmount: contagemTotal
+            
+            }
+
+
+        }
+
+
 
     }
 

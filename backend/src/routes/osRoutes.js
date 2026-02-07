@@ -11,7 +11,7 @@ router.post('/register', authController.register);
 
 router.post('/login', authController.login);
 
-router.get('/', auth, osController.list)
+router.get('/', auth, osController.listAll)
 
 router.get('/:id', auth, osController.getById)
 

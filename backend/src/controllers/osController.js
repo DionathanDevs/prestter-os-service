@@ -55,22 +55,16 @@ const osController = {
 
         try {
             const { id } = req.params
+            const companyId = req.user.companyId;
 
-            const order = await osService.getOrderById(id)
+            const order = await osService.getOrderById(id, companyId)
 
             if (!order) {
-                return res.status(400).json({
+                return res.status(404).json({
                     success: false,
                     message: `Não encontramos nenhuma Ordem de Serviço com o número #${id}.`
                 })
             }
-
-            if (order.company_id !== req.user.companyId) {
-            return res.status(403).json({
-                success: false,
-                message: "Acesso negado. Esta OS pertence a outra unidade."
-            });
-        }
 
             return res.status(200).json({
                 success: true,
